@@ -19,6 +19,11 @@ include_directories (${CMAKE_SOURCE_DIR}
                      ${QT4_INCLUDES})
 add_definitions(${EIGEN_DEFINITIONS})
 
+option(ENABLE_STEREOSCOPIC "Enable stereoscopic display" OFF)
+if(ENABLE_STEREOSCOPIC)
+    add_definitions(-DENABLE_STEREOSCOPIC)
+endif()
+
 # some configure checks needed for kstars
 include(CheckIncludeFiles)
 

@@ -267,16 +267,16 @@ class SkyMap : public QGraphicsView {
     /**
      *@short Proxy method for SkyMapDrawAbstract::exportSkyImage()
      */
-    inline void exportSkyImage( QPaintDevice *pd, bool scale = false ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw)->exportSkyImage( pd, scale ); }
+    inline void exportSkyImage( QPaintDevice *pd, bool scale = false ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw[0])->exportSkyImage( pd, scale ); }
 
-    inline void exportSkyImage( SkyQPainter *painter, bool scale = false ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw)->exportSkyImage( painter, scale ); }
+    inline void exportSkyImage( SkyQPainter *painter, bool scale = false ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw[0])->exportSkyImage( painter, scale ); }
 
-    SkyMapDrawAbstract* getSkyMapDrawAbstract() { return dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw); }
+    SkyMapDrawAbstract* getSkyMapDrawAbstract() { return dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw[0]); }
 
     /**
      *@short Proxy method for SkyMapDrawAbstract::drawObjectLabels()
      */
-    inline void drawObjectLabels( QList< SkyObject* >& labelObjects ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw)->drawObjectLabels( labelObjects ); }
+    inline void drawObjectLabels( QList< SkyObject* >& labelObjects ) { dynamic_cast<SkyMapDrawAbstract *>(m_SkyMapDraw[0])->drawObjectLabels( labelObjects ); }
 
     void setPreviewLegend(bool preview) { m_previewLegend = preview; }
 
@@ -526,6 +526,10 @@ protected:
      */
     virtual void resizeEvent( QResizeEvent * );
 
+    /**Update geometries of contained widgets
+     */
+    void updateGeometries();
+
 private slots:
     /** @short display tooltip for object under cursor. It's called by m_HoverTimer.
      *  if mouse didn't moved for last HOVER_INTERVAL milliseconds.
@@ -641,12 +645,12 @@ private:
     bool m_fovCaptureMode;
 
 
-    QWidget *m_SkyMapDraw; // Can be dynamic_cast<> to SkyMapDrawAbstract
+    QWidget *m_SkyMapDraw[2]; // Can be dynamic_cast<> to SkyMapDrawAbstract
 
     // NOTE: These are pointers to the individual widgets
     #ifdef HAVE_OPENGL
     SkyMapQDraw *m_SkyMapQDraw;
-    SkyMapGLDraw *m_SkyMapGLDraw;
+    SkyMapGLDraw *m_SkyMapGLDraw[2];
     #endif
 
     QGraphicsScene *m_Scene;

@@ -175,7 +175,8 @@ SkyMap::SkyMap() :
     ClickedObject = NULL;
     FocusObject = NULL;
 
-    m_SkyMapDraw = 0;
+    m_SkyMapDraw[0] = 0;
+    m_SkyMapDraw[1] = 0;
 
     pmenu = new KSPopupMenu();
 
@@ -221,23 +222,36 @@ SkyMap::SkyMap() :
 #ifdef HAVE_OPENGL
     m_SkyMapQDraw  = new SkyMapQDraw( this );
     m_SkyMapQDraw->setMouseTracking( true );
-    m_SkyMapGLDraw = new SkyMapGLDraw( this );
-    m_SkyMapGLDraw->setMouseTracking( true );
-    m_SkyMapGLDraw->hide();
+    m_SkyMapGLDraw[0] = new SkyMapGLDraw( this );
+    m_SkyMapGLDraw[0]->setMouseTracking( true );
+    m_SkyMapGLDraw[0]->hide();
+#if 1 // STEREOSCOPIC
+    m_SkyMapGLDraw[1] = new SkyMapGLDraw( this );
+    m_SkyMapGLDraw[1]->setMouseTracking( true );
+    m_SkyMapGLDraw[1]->hide();
+#else
+    m_SkyMapGLDraw[1] = nullptr;
+#endif
     m_SkyMapQDraw->hide();
 
-    if( Options::useGL() )
-        m_SkyMapDraw = m_SkyMapGLDraw;
-    else
-        m_SkyMapDraw = m_SkyMapQDraw;
+    if( Options::useGL() ) {
+        m_SkyMapDraw[0] = m_SkyMapGLDraw[0];
+        m_SkyMapDraw[1] = m_SkyMapGLDraw[1];
+    } else {
+        m_SkyMapDraw[0] = m_SkyMapQDraw;
+        m_SkyMapDraw[1] = nullptr;
+    }
 #else
-    m_SkyMapDraw = new SkyMapQDraw( this );
-    m_SkyMapDraw->setMouseTracking( true );
+    m_SkyMapDraw[0] = new SkyMapQDraw( this );
+    m_SkyMapDraw[0]->setMouseTracking( true );
 #endif
-    
-    m_SkyMapDraw->setParent( this->viewport() );
-    m_SkyMapDraw->show();
-
+    m_SkyMapDraw[0]->setParent( this->viewport() );
+    m_SkyMapDraw[0]->show();
+    if (m_SkyMapDraw[1]) {
+        m_SkyMapDraw[1]->setParent( this->viewport() );
+        m_SkyMapDraw[1]->show();
+        updateGeometries();
+   }
     /*
     m_Scene = new QGraphicsScene( rect() );
     setScene( m_Scene );
@@ -247,7 +261,7 @@ SkyMap::SkyMap() :
     // If GL is enabled, the InfoBoxes work only with native painting.
     m_iboxes = new InfoBoxes( m_SkyMapQDraw );
 #else
-    m_iboxes = new InfoBoxes( m_SkyMapDraw );
+    m_iboxes = new InfoBoxes( m_SkyMapDraw[0] );
 #endif
 
     m_iboxes->setVisible( Options::showInfoBoxes() );
@@ -313,11 +327,14 @@ SkyMap::~SkyMap() {
     }
 
 #ifdef HAVE_OPENGL
-    delete m_SkyMapGLDraw;
+    delete m_SkyMapGLDraw[0];
+    delete m_SkyMapGLDraw[1];
     delete m_SkyMapQDraw;
-    m_SkyMapDraw = 0; // Just a formality
+    m_SkyMapDraw[0] = 0; // Just a formality
+    m_SkyMapDraw[1] = 0; // Just a formality
 #else
-    delete m_SkyMapDraw;
+    delete m_SkyMapDraw[0];
+    delete m_SkyMapDraw[1];
 #endif
 
     delete pmenu;
@@ -996,10 +1013,16 @@ void SkyMap::forceUpdate( bool now )
     data->incUpdateID();
 
     if( now )
-        m_SkyMapDraw->repaint();
+        m_SkyMapDraw[0]->repaint();
     else
-        m_SkyMapDraw->update();
-    
+        m_SkyMapDraw[0]->update();
+
+    if (m_SkyMapDraw[1]) {
+        if( now )
+            m_SkyMapDraw[1]->repaint();
+        else
+            m_SkyMapDraw[1]->update();
+    }
 }
 
 float SkyMap::fov() {
@@ -1012,7 +1035,7 @@ void SkyMap::setupProjector() {
     ViewParams p;
     p.focus         = focus();
     p.height        = height();
-    p.width         = width();
+    p.width         = m_SkyMapDraw[1] ? width() / 2 : width();
     p.useAltAz      = Options::useAltAz();
     p.useRefraction = Options::useRefraction();
     p.zoomFactor    = Options::zoomFactor();
@@ -1084,16 +1107,21 @@ bool SkyMap::isSlewing() const  {
 #ifdef HAVE_OPENGL
 void SkyMap::slotToggleGL() {
 
-    Q_ASSERT( m_SkyMapGLDraw );
+    Q_ASSERT( m_SkyMapGLDraw[0] );
     Q_ASSERT( m_SkyMapQDraw );
 
-    m_SkyMapDraw->setParent( 0 );
-    m_SkyMapDraw->hide();
+    m_SkyMapDraw[0]->setParent( 0 );
+    m_SkyMapDraw[0]->hide();
+    if (m_SkyMapDraw[1]) {
+        m_SkyMapDraw[1]->setParent( 0 );
+        m_SkyMapDraw[1]->hide();
+    }
 
     if( Options::useGL() ) {
         // Do NOT use GL
         Options::setUseGL( false );
-        m_SkyMapDraw = m_SkyMapQDraw;
+        m_SkyMapDraw[0] = m_SkyMapQDraw;
+        m_SkyMapDraw[1] = nullptr;
         KStars::Instance()->actionCollection()->action( "opengl" )->setText(i18n("Switch to OpenGL backend"));
     }
     else {
@@ -1115,13 +1143,36 @@ void SkyMap::slotToggleGL() {
 
             Options::setUseGL( true );
 
-            m_SkyMapDraw = m_SkyMapGLDraw;
+            m_SkyMapDraw[0] = m_SkyMapGLDraw[0];
+            m_SkyMapDraw[1] = m_SkyMapGLDraw[1];
             KStars::Instance()->actionCollection()->action( "opengl" )->setText(i18n("Switch to QPainter backend"));
         }
     }
-    m_SkyMapDraw->setParent( viewport() );
-    m_SkyMapDraw->show();
-    m_SkyMapDraw->resize( size() );
+    m_SkyMapDraw[0]->setParent( viewport() );
+    m_SkyMapDraw[0]->show();
+    if (m_SkyMapDraw[1]) {
+        m_SkyMapDraw[1]->setParent( viewport() );
+        m_SkyMapDraw[1]->show();
+    } else {
+        m_SkyMapDraw[0]->resize( size() );
+    }
+    updateGeometries();
+}
+
+void SkyMap::slotToggleStereoScopic()
+{
+    if (Options::stereoscopic()) {
+        m_SkyMapDraw[1]->setParent(nullptr);
+        m_SkyMapDraw[1]->hide();
+        m_SkyMapDraw[1] = 0;
+        KStars::Instance()->actionCollection()->action( "stereoscopic" )->setText(i18n("Switch to stereoscopic display"));
+    } else {
+        m_SkyMapDraw[1] = m_SkyMapGLDraw[1];
+        m_SkyMapDraw[1]->setParent(viewport());
+        m_SkyMapDraw[1]->show();
+        KStars::Instance()->actionCollection()->action( "stereoscopic" )->setText(i18n("Switch to single display"));
+    }
+    updateGeometries();
 }
 #endif
 
@@ -1251,5 +1302,15 @@ void SkyMap::slotXplanetToFile() {
     }
 }
 #endif
+
+void SkyMap::updateGeometries()
+{
+    if (m_SkyMapDraw[1]) {
+        QRect rect = geometry();
+        m_SkyMapDraw[0]->setGeometry(rect.x(), rect.y(), rect.width()/2, rect.height());
+        m_SkyMapDraw[1]->setGeometry(rect.x() + rect.width()/2, rect.y(), rect.width()/2, rect.height());
+    } else
+        m_SkyMapDraw[0]->setGeometry(geometry());
+}
 
 #include "skymap.moc"

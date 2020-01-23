@@ -61,7 +61,7 @@ void SkyMap::resizeEvent( QResizeEvent * )
 
     // Resize the widget that draws the sky map.
     // FIXME: The resize event doesn't pass to children. Any better way of doing this?
-    m_SkyMapDraw->resize( size() );
+    updateGeometries();
 
     // Resize infoboxes container.
     // FIXME: this is not really pretty. Maybe there are some better way to this???
