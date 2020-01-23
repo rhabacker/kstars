@@ -425,6 +425,7 @@ public slots:
 
 #ifdef HAVE_OPENGL
     void slotToggleGL();
+    void slotToggleStereoScopic();
 #endif
 
 #ifdef HAVE_XPLANET

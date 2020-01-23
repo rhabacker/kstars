@@ -732,6 +732,11 @@
       <whatsthis>This version of KStars comes with new experimental OpenGL support. Our experience is that OpenGL works much faster on machines with hardware acceleration. Would you like to switch to OpenGL painting backends?</whatsthis>
       <default>false</default>
     </entry>
+    <entry name="Stereoscopic" type="Bool">
+      <label>Switch to stereoscopic display</label>
+      <whatsthis>This version of KStars comes with support for a stereoscopic display. Do you want to switch to stereoscopic display ?</whatsthis>
+      <default>false</default>
+    </entry>
     <entry name="RunClock" type="Bool">
       <label>Run clock</label>
       <whatsthis>The state of the clock (running or not)</whatsthis>
